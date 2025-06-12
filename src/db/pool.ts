@@ -1,4 +1,7 @@
 import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { sql } from "drizzle-orm";
+import { items } from "./schema";
 
 const database = process.env.NODE_ENV === "test" ? "test" : "postgres";
 
@@ -10,14 +13,18 @@ export const pool = new Pool({
   database,
 });
 
+export const db = drizzle(pool);
+
 export async function initDb() {
-  await pool.query(`CREATE TABLE IF NOT EXISTS items (
-    id uuid PRIMARY KEY,
-    name text NOT NULL,
-    qty integer NOT NULL
-  )`);
+  await db.execute(
+    sql`CREATE TABLE IF NOT EXISTS ${items} (
+      id uuid PRIMARY KEY,
+      name text NOT NULL,
+      qty integer NOT NULL
+    )`
+  );
 }
 
 export async function dropDb() {
-  await pool.query("DROP TABLE IF EXISTS items");
+  await db.execute(sql`DROP TABLE IF EXISTS ${items}`);
 }

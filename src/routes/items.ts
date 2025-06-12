@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { ItemCreateSchema, ItemPatchSchema } from "../schemas/item";
-import { pool } from "../db/pool";
+import { db } from "../db/pool";
+import { items } from "../db/schema";
+import { eq } from "drizzle-orm";
 
 const router = Router();
 
@@ -13,11 +15,11 @@ router.post("/", async (req, res) => {
   }
   const id = uuidv4();
   try {
-    const { rows } = await pool.query(
-      "INSERT INTO items (id, name, qty) VALUES ($1, $2, $3) RETURNING *",
-      [id, parsed.data.name, parsed.data.qty]
-    );
-    res.status(201).json(rows[0]);
+    const [item] = await db
+      .insert(items)
+      .values({ id, name: parsed.data.name, qty: parsed.data.qty })
+      .returning();
+    res.status(201).json(item);
   } catch {
     res.status(500).json({ error: "Database error" });
   }
@@ -25,7 +27,7 @@ router.post("/", async (req, res) => {
 
 router.get("/", async (_req, res) => {
   try {
-    const { rows } = await pool.query("SELECT * FROM items");
+    const rows = await db.select().from(items);
     res.json(rows);
   } catch {
     res.status(500).json({ error: "Database error" });
@@ -39,28 +41,25 @@ router.patch("/:id", async (req, res) => {
     return;
   }
   const { id } = req.params;
-  const fields: string[] = [];
-  const values: any[] = [];
+  const update: Record<string, any> = {};
   if (parsed.data.name !== undefined) {
-    fields.push(`name = $${fields.length + 1}`);
-    values.push(parsed.data.name);
+    update.name = parsed.data.name;
   }
   if (parsed.data.qty !== undefined) {
-    fields.push(`qty = $${fields.length + 1}`);
-    values.push(parsed.data.qty);
+    update.qty = parsed.data.qty;
   }
-  values.push(id);
-  const query = `UPDATE items SET ${fields.join(", ")} WHERE id = $${
-    values.length
-  } RETURNING *`;
 
   try {
-    const { rows } = await pool.query(query, values);
-    if (rows.length === 0) {
+    const [item] = await db
+      .update(items)
+      .set(update)
+      .where(eq(items.id, id))
+      .returning();
+    if (!item) {
       res.status(404).json({ error: "Item not found" });
       return;
     }
-    res.json(rows[0]);
+    res.json(item);
   } catch {
     res.status(500).json({ error: "Database error" });
   }
@@ -69,10 +68,11 @@ router.patch("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    const { rowCount } = await pool.query("DELETE FROM items WHERE id = $1", [
-      id,
-    ]);
-    if (rowCount === 0) {
+    const deleted = await db
+      .delete(items)
+      .where(eq(items.id, id))
+      .returning({ id: items.id });
+    if (deleted.length === 0) {
       res.status(404).json({ error: "Item not found" });
       return;
     }

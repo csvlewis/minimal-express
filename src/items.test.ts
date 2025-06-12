@@ -2,18 +2,20 @@ process.env.NODE_ENV = "test";
 import request from "supertest";
 import { v4 as uuidv4 } from "uuid";
 import app from "./index";
-import { pool, initDb } from "./db/pool";
+import { pool, db, initDb } from "./db/pool";
+import { items } from "./db/schema";
+import { sql } from "drizzle-orm";
 
 beforeAll(async () => {
   await initDb();
 });
 
 beforeEach(async () => {
-  await pool.query("DELETE FROM items");
+  await db.delete(items);
 });
 
 afterAll(async () => {
-  await pool.query("DROP TABLE IF EXISTS items");
+  await db.execute(sql`DROP TABLE IF EXISTS ${items}`);
   await pool.end();
 });
 
@@ -53,11 +55,7 @@ describe("API integration tests", () => {
 
   test("PATCH /items/:id updates an item", async () => {
     const id = uuidv4();
-    await pool.query("INSERT INTO items (id, name, qty) VALUES ($1, $2, $3)", [
-      id,
-      "apple",
-      1,
-    ]);
+    await db.insert(items).values({ id, name: "apple", qty: 1 });
 
     const res = await request(app).patch(`/items/${id}`).send({ qty: 5 });
 
@@ -68,11 +66,7 @@ describe("API integration tests", () => {
 
   test("PATCH /items/:id with invalid payload returns 400", async () => {
     const id = uuidv4();
-    await pool.query("INSERT INTO items (id, name, qty) VALUES ($1, $2, $3)", [
-      id,
-      "apple",
-      1,
-    ]);
+    await db.insert(items).values({ id, name: "apple", qty: 1 });
 
     const res = await request(app).patch(`/items/${id}`).send({ qty: -1 });
     expect(res.status).toBe(400);
@@ -81,11 +75,7 @@ describe("API integration tests", () => {
 
   test("DELETE /items/:id removes the item", async () => {
     const id = uuidv4();
-    await pool.query("INSERT INTO items (id, name, qty) VALUES ($1, $2, $3)", [
-      id,
-      "orange",
-      2,
-    ]);
+    await db.insert(items).values({ id, name: "orange", qty: 2 });
 
     const del = await request(app).delete(`/items/${id}`);
     expect(del.status).toBe(204);
