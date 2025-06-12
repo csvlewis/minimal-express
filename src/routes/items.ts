@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { ItemCreateSchema, ItemPatchSchema } from "../schemas/item";
 import { db } from "../db/pool";
 import { items } from "../db/schema";
 import { eq } from "drizzle-orm";
@@ -8,17 +7,14 @@ import { eq } from "drizzle-orm";
 const router = Router();
 
 router.post("/", async (req, res) => {
-  const parsed = ItemCreateSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ errors: parsed.error.format() });
+  const { name, qty } = req.body;
+  if (!name || !qty) {
+    res.status(400).json({ errors: "name and qty are required" });
     return;
   }
   const id = uuidv4();
   try {
-    const [item] = await db
-      .insert(items)
-      .values({ id, name: parsed.data.name, qty: parsed.data.qty })
-      .returning();
+    const [item] = await db.insert(items).values({ id, name, qty }).returning();
     res.status(201).json(item);
   } catch {
     res.status(500).json({ error: "Database error" });
@@ -35,18 +31,18 @@ router.get("/", async (_req, res) => {
 });
 
 router.patch("/:id", async (req, res) => {
-  const parsed = ItemPatchSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ errors: parsed.error.format() });
+  const { name, qty } = req.body;
+  if (!name && !qty) {
+    res.status(400).json({ errors: "name or qty is required" });
     return;
   }
   const { id } = req.params;
   const update: Record<string, any> = {};
-  if (parsed.data.name !== undefined) {
-    update.name = parsed.data.name;
+  if (name !== undefined) {
+    update.name = req.body.data.name;
   }
-  if (parsed.data.qty !== undefined) {
-    update.qty = parsed.data.qty;
+  if (qty !== undefined) {
+    update.qty = req.body.data.qty;
   }
 
   try {
