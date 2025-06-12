@@ -5,6 +5,3 @@ export const items = pgTable("items", {
   name: text("name").notNull(),
   qty: integer("qty").notNull(),
 });
-
-export type ItemRecord = typeof items.$inferSelect;
-export type ItemInsert = typeof items.$inferInsert;
