@@ -1,5 +1,6 @@
 import express from "express";
 import itemsRouter from "./routes/items";
+import rentalsRouter from "./routes/rentals";
 import { initDb, dropDb, pool } from "./db/pool";
 
 const app = express();
@@ -10,6 +11,8 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/items", itemsRouter);
+
+app.use("/rentals", rentalsRouter);
 
 if (require.main === module) {
   initDb()
