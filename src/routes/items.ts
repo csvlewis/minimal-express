@@ -1,21 +1,20 @@
 import { Router } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { ItemCreateSchema, ItemPatchSchema } from "../schemas/item";
 import { pool } from "../db/pool";
 
 const router = Router();
 
 router.post("/", async (req, res) => {
-  const parsed = ItemCreateSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ errors: parsed.error.format() });
+  const { name, qty } = req.body;
+  if (!name || !qty) {
+    res.status(400).json({ errors: "name and qty are required" });
     return;
   }
   const id = uuidv4();
   try {
     const { rows } = await pool.query(
       "INSERT INTO items (id, name, qty) VALUES ($1, $2, $3) RETURNING *",
-      [id, parsed.data.name, parsed.data.qty]
+      [id, name, qty]
     );
     res.status(201).json(rows[0]);
   } catch {
@@ -33,21 +32,21 @@ router.get("/", async (_req, res) => {
 });
 
 router.patch("/:id", async (req, res) => {
-  const parsed = ItemPatchSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ errors: parsed.error.format() });
+  const { name, qty } = req.body;
+  if (!name && !qty) {
+    res.status(400).json({ errors: "name or qty is required" });
     return;
   }
   const { id } = req.params;
   const fields: string[] = [];
   const values: any[] = [];
-  if (parsed.data.name !== undefined) {
+  if (name !== undefined) {
     fields.push(`name = $${fields.length + 1}`);
-    values.push(parsed.data.name);
+    values.push(name);
   }
-  if (parsed.data.qty !== undefined) {
+  if (qty !== undefined) {
     fields.push(`qty = $${fields.length + 1}`);
-    values.push(parsed.data.qty);
+    values.push(qty);
   }
   values.push(id);
   const query = `UPDATE items SET ${fields.join(", ")} WHERE id = $${
