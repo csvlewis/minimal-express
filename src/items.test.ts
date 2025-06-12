@@ -1,10 +1,20 @@
+process.env.NODE_ENV = "test";
 import request from "supertest";
 import { v4 as uuidv4 } from "uuid";
 import app from "./index";
-import { items } from "./db/items";
+import { pool, initDb } from "./db/pool";
 
-beforeEach(() => {
-  items.splice(0, items.length);
+beforeAll(async () => {
+  await initDb();
+});
+
+beforeEach(async () => {
+  await pool.query("DELETE FROM items");
+});
+
+afterAll(async () => {
+  await pool.query("DROP TABLE IF EXISTS items");
+  await pool.end();
 });
 
 describe("API integration tests", () => {
@@ -20,9 +30,10 @@ describe("API integration tests", () => {
 
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject(payload);
-    expect(items[0]).toHaveProperty("id");
-    expect(items[0].name).toBe("banana");
-    expect(items[0].qty).toBe(3);
+    expect(res.body).toHaveProperty("id");
+
+    const list = await request(app).get("/items");
+    expect(list.body.some((i: any) => i.id === res.body.id)).toBe(true);
   });
 
   test("POST /items with invalid payload returns 400 and errors", async () => {
@@ -32,7 +43,7 @@ describe("API integration tests", () => {
   });
 
   test("GET /items returns all items", async () => {
-    items.push({ id: uuidv4(), name: "banana", qty: 3 });
+    await request(app).post("/items").send({ name: "banana", qty: 3 });
 
     const res = await request(app).get("/items");
     expect(res.status).toBe(200);
@@ -41,10 +52,14 @@ describe("API integration tests", () => {
   });
 
   test("PATCH /items/:id updates an item", async () => {
-    const item = { id: uuidv4(), name: "apple", qty: 1 };
-    items.push(item);
+    const id = uuidv4();
+    await pool.query("INSERT INTO items (id, name, qty) VALUES ($1, $2, $3)", [
+      id,
+      "apple",
+      1,
+    ]);
 
-    const res = await request(app).patch(`/items/${item.id}`).send({ qty: 5 });
+    const res = await request(app).patch(`/items/${id}`).send({ qty: 5 });
 
     expect(res.status).toBe(200);
     expect(res.body.qty).toBe(5);
@@ -52,22 +67,30 @@ describe("API integration tests", () => {
   });
 
   test("PATCH /items/:id with invalid payload returns 400", async () => {
-    const item = { id: uuidv4(), name: "apple", qty: 1 };
-    items.push(item);
+    const id = uuidv4();
+    await pool.query("INSERT INTO items (id, name, qty) VALUES ($1, $2, $3)", [
+      id,
+      "apple",
+      1,
+    ]);
 
-    const res = await request(app).patch(`/items/${item.id}`).send({ qty: -1 });
+    const res = await request(app).patch(`/items/${id}`).send({ qty: -1 });
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("errors");
   });
 
   test("DELETE /items/:id removes the item", async () => {
-    const item = { id: uuidv4(), name: "orange", qty: 2 };
-    items.push(item);
+    const id = uuidv4();
+    await pool.query("INSERT INTO items (id, name, qty) VALUES ($1, $2, $3)", [
+      id,
+      "orange",
+      2,
+    ]);
 
-    const del = await request(app).delete(`/items/${item.id}`);
+    const del = await request(app).delete(`/items/${id}`);
     expect(del.status).toBe(204);
 
     const res = await request(app).get("/items");
-    expect(res.body.some((i: any) => i.id === item.id)).toBe(false);
+    expect(res.body.some((i: any) => i.id === id)).toBe(false);
   });
 });
