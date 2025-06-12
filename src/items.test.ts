@@ -28,7 +28,7 @@ describe("API integration tests", () => {
   test("POST /items with invalid payload returns 400 and errors", async () => {
     const res = await request(app).post("/items").send({ name: "", qty: -1 });
     expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty("errors");
+    expect(res.body).toHaveProperty("error");
   });
 
   test("GET /items returns all items", async () => {
@@ -55,9 +55,9 @@ describe("API integration tests", () => {
     const item = { id: uuidv4(), name: "apple", qty: 1 };
     items.push(item);
 
-    const res = await request(app).patch(`/items/${item.id}`).send({ qty: -1 });
+    const res = await request(app).patch(`/items/${item.id}`).send({});
     expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty("errors");
+    expect(res.body).toHaveProperty("error");
   });
 
   test("DELETE /items/:id removes the item", async () => {

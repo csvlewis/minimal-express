@@ -1,18 +1,18 @@
 import { Router } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { ItemCreateSchema, ItemPatchSchema } from "../schemas/item";
 import { items } from "../db/items";
 
 const router = Router();
 
 router.post("/", (req, res) => {
-  const parsed = ItemCreateSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ errors: parsed.error.format() });
+  const { name, qty } = req.body;
+  if (!name || !qty) {
+    res.status(400).json({ error: "name and qty are required" });
     return;
   }
-  items.push({ id: uuidv4(), ...req.body });
-  res.status(201).json(parsed.data);
+  const id = uuidv4();
+  items.push({ id, name, qty });
+  res.status(201).json({ id, name, qty });
 });
 
 router.get("/", (_req, res) => {
@@ -20,9 +20,9 @@ router.get("/", (_req, res) => {
 });
 
 router.patch("/:id", (req, res) => {
-  const parsed = ItemPatchSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ errors: parsed.error.format() });
+  const { name, qty } = req.body;
+  if (!name && qty === undefined) {
+    res.status(400).json({ error: "name or qty is required" });
     return;
   }
   const { id } = req.params;
@@ -31,7 +31,8 @@ router.patch("/:id", (req, res) => {
     res.status(404).json({ error: "Item not found" });
     return;
   }
-  Object.assign(item, parsed.data);
+  if (name) item.name = name;
+  if (qty) item.qty = qty;
   res.json(item);
 });
 
