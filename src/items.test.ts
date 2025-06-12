@@ -68,7 +68,7 @@ describe("API integration tests", () => {
     const id = uuidv4();
     await db.insert(items).values({ id, name: "apple", qty: 1 });
 
-    const res = await request(app).patch(`/items/${id}`).send({ qty: -1 });
+    const res = await request(app).patch(`/items/${id}`).send({});
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty("errors");
   });

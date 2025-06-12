@@ -39,10 +39,10 @@ router.patch("/:id", async (req, res) => {
   const { id } = req.params;
   const update: Record<string, any> = {};
   if (name !== undefined) {
-    update.name = req.body.data.name;
+    update.name = name;
   }
   if (qty !== undefined) {
-    update.qty = req.body.data.qty;
+    update.qty = qty;
   }
 
   try {
