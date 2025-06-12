@@ -17,3 +17,7 @@ export async function initDb() {
     qty integer NOT NULL
   )`);
 }
+
+export async function dropDb() {
+  await pool.query("DROP TABLE IF EXISTS items");
+}
