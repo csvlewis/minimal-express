@@ -19,8 +19,8 @@ export async function initDb() {
   await db.execute(
     sql`CREATE TABLE IF NOT EXISTS items (
       id uuid PRIMARY KEY,
-      name text NOT NULL,
-      qty integer NOT NULL
+      name text,
+      qty integer
     )`
   );
 }
