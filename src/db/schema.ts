@@ -2,6 +2,6 @@ import { pgTable, uuid, text, integer } from "drizzle-orm/pg-core";
 
 export const items = pgTable("items", {
   id: uuid().primaryKey(),
-  name: text().notNull(),
-  qty: integer().notNull(),
+  name: text(),
+  qty: integer(),
 });
