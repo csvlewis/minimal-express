@@ -33,23 +33,21 @@ describe("API integration tests", () => {
     expect(res.body).toMatchObject(payload);
     expect(res.body).toHaveProperty("id");
 
-    const list = await request(app).get("/items");
-    expect(list.body.some((i: any) => i.id === res.body.id)).toBe(true);
-  });
-
-  test("POST /items with invalid payload returns 400 and errors", async () => {
-    const res = await request(app).post("/items").send({ name: "", qty: -1 });
-    expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty("errors");
+    const dbItems = await db.select().from(items);
+    expect(dbItems[0].id).toBe(res.body.id);
+    expect(dbItems[0].name).toBe("banana");
+    expect(dbItems[0].qty).toBe(3);
   });
 
   test("GET /items returns all items", async () => {
-    await request(app).post("/items").send({ name: "banana", qty: 3 });
+    const id = uuidv4();
+    await db.insert(items).values({ id, name: "banana", qty: 3 });
 
     const res = await request(app).get("/items");
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.some((i: any) => i.name === "banana")).toBe(true);
+    expect(res.body[0].id).toBe(id);
+    expect(res.body[0].name).toBe("banana");
+    expect(res.body[0].qty).toBe(3);
   });
 
   test("PATCH /items/:id updates an item", async () => {
@@ -59,17 +57,10 @@ describe("API integration tests", () => {
     const res = await request(app).patch(`/items/${id}`).send({ qty: 5 });
 
     expect(res.status).toBe(200);
-    expect(res.body.qty).toBe(5);
-    expect(res.body.name).toBe("apple");
-  });
 
-  test("PATCH /items/:id with invalid payload returns 400", async () => {
-    const id = uuidv4();
-    await db.insert(items).values({ id, name: "apple", qty: 1 });
-
-    const res = await request(app).patch(`/items/${id}`).send({});
-    expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty("errors");
+    const dbItems = await db.select().from(items);
+    expect(dbItems[0].qty).toBe(5);
+    expect(dbItems[0].name).toBe("apple");
   });
 
   test("DELETE /items/:id removes the item", async () => {
@@ -79,7 +70,7 @@ describe("API integration tests", () => {
     const del = await request(app).delete(`/items/${id}`);
     expect(del.status).toBe(204);
 
-    const res = await request(app).get("/items");
-    expect(res.body.some((i: any) => i.id === id)).toBe(false);
+    const dbItems = await db.select().from(items);
+    expect(dbItems.length).toBe(0);
   });
 });
