@@ -2,7 +2,7 @@ process.env.NODE_ENV = "test";
 import request from "supertest";
 import { v4 as uuidv4 } from "uuid";
 import app from "./index";
-import { pool, db, initDb } from "./db/pool";
+import { pool, db, initDb, dropDb, resetDb } from "./db/pool";
 import { items } from "./db/schema";
 import { sql } from "drizzle-orm";
 
@@ -11,11 +11,11 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await db.delete(items);
+  await resetDb();
 });
 
 afterAll(async () => {
-  await db.execute(sql`DROP TABLE IF EXISTS ${items}`);
+  await dropDb();
   await pool.end();
 });
 

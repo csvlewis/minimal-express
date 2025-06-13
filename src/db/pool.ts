@@ -17,7 +17,7 @@ export const db = drizzle(pool);
 
 export async function initDb() {
   await db.execute(
-    sql`CREATE TABLE IF NOT EXISTS ${items} (
+    sql`CREATE TABLE IF NOT EXISTS items (
       id uuid PRIMARY KEY,
       name text NOT NULL,
       qty integer NOT NULL
@@ -25,6 +25,10 @@ export async function initDb() {
   );
 }
 
+export async function resetDb() {
+  await db.delete(items);
+}
+
 export async function dropDb() {
-  await db.execute(sql`DROP TABLE IF EXISTS ${items}`);
+  await db.execute(sql`DROP TABLE IF EXISTS items`);
 }
