@@ -4,7 +4,6 @@ import { v4 as uuidv4 } from "uuid";
 import app from "./index";
 import { pool, db, initDb, dropDb, resetDb } from "./db/pool";
 import { items } from "./db/schema";
-import { sql } from "drizzle-orm";
 
 beforeAll(async () => {
   await initDb();
